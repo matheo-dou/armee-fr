@@ -102,20 +102,26 @@
     </header>
 
     <div id="articles-container">
-        <div class="loader">Initialisation et lecture du dépôt GitHub...</div>
+        <div class="loader">Initialisation et lecture du dépôt (via jsDelivr)...</div>
     </div>
 
     <script>
         // ==========================================
         // CONFIGURATION : REMPLACEZ PAR VOS INFOS
         // ==========================================
-        const GITHUB_USER = "matheo-dou"; 
+        const GITHUB_USER = "matheo-dou";
         const REPO_NAME = "armee-fr";
-        const BRANCH = "main"; 
+        const BRANCH = "main";
 
-        // URLs de l'API GitHub
-        const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
-        
+        // Dossier racine (dans le repo) contenant les fichiers JSON
+        const ROOT_FOLDER = "json";
+
+        // API jsDelivr : liste à plat de TOUS les fichiers du repo, en une seule requête
+        const JSDELIVR_LIST_URL = `https://data.jsdelivr.com/v1/package/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH}/flat`;
+
+        // CDN jsDelivr : sert le contenu brut des fichiers, sans limite de requêtes
+        const JSDELIVR_CDN_BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH}`;
+
         let allArticles = []; // Contiendra la totalité des fichiers JSON chargés
 
         // Lancement de l'application
@@ -123,35 +129,46 @@
 
         async function init() {
             try {
-                // 1. Récupération du contenu du dossier principal /json
-                const response = await fetch(BASE_API_URL);
+                // 1. Récupération de la liste complète des fichiers du repo via jsDelivr
+                const response = await fetch(JSDELIVR_LIST_URL);
                 if (!response.ok) {
-                    throw new Error("Impossible d'accéder au dossier 'json'. Vérifiez qu'il existe et qu'il contient des fichiers.");
+                    throw new Error(`Impossible de lister les fichiers du dépôt (code ${response.status}). Vérifiez GITHUB_USER, REPO_NAME et BRANCH.`);
                 }
-                const items = await response.json();
+                const data = await response.json();
+                const allFiles = data.files || []; // ex: [{ name: "/json/Transmission/fiche1.json", ... }, ...]
 
+                // 2. On ne garde que les fichiers .json situés dans le dossier ROOT_FOLDER
+                const prefix = `/${ROOT_FOLDER}/`;
+                const jsonFiles = allFiles.filter(f => f.name.startsWith(prefix) && f.name.endsWith('.json'));
+
+                if (jsonFiles.length === 0) {
+                    throw new Error(`Aucun fichier .json trouvé dans le dossier "${ROOT_FOLDER}/". Vérifiez le nom du dossier (ROOT_FOLDER) et que le repo est public.`);
+                }
+
+                // 3. Détermination de la catégorie (sous-dossier) de chaque fichier + remplissage du menu déroulant
+                const categories = new Set();
                 const selectEl = document.getElementById('category-select');
                 const fetchPromises = [];
 
-                // 2. Analyse des éléments trouvés dans /json
-                for (const item of items) {
-                    if (item.type === "dir") {
-                        // C'est un sous-dossier (ex: Transmission) -> On l'ajoute comme option au menu déroulant
-                        const option = document.createElement('option');
-                        option.value = item.name;
-                        option.textContent = item.name;
-                        selectEl.appendChild(option);
+                for (const file of jsonFiles) {
+                    // file.name ex: "/json/Transmission/fiche1.json" ou "/json/fiche.json"
+                    const relativePath = file.name.slice(prefix.length); // "Transmission/fiche1.json" ou "fiche.json"
+                    const parts = relativePath.split('/');
+                    const category = parts.length > 1 ? parts[0] : "Racine";
 
-                        // On lance le scan des fichiers JSON présents à l'intérieur de ce sous-dossier
-                        fetchPromises.push(scanFolder(item.path, item.name));
-                    } 
-                    else if (item.type === "file" && item.name.endsWith('.json')) {
-                        // C'est un fichier JSON situé directement à la racine du dossier /json
-                        fetchPromises.push(loadJsonFile(item.download_url, "Racine"));
+                    if (!categories.has(category)) {
+                        categories.add(category);
+                        const option = document.createElement('option');
+                        option.value = category;
+                        option.textContent = category;
+                        selectEl.appendChild(option);
                     }
+
+                    const fileUrl = `${JSDELIVR_CDN_BASE}${file.name}`;
+                    fetchPromises.push(loadJsonFile(fileUrl, category));
                 }
 
-                // 3. Attente du chargement complet de l'intégralité des fichiers de toutes les promesses
+                // 4. Attente du chargement complet de tous les fichiers
                 await Promise.all(fetchPromises);
 
                 // Activation de l'écouteur de changement sur le menu déroulant
@@ -163,49 +180,42 @@
             } catch (error) {
                 document.getElementById('articles-container').innerHTML = `
                     <div class="error-msg">
-                        <strong>Erreur d'initialisation :</strong> ${error.message}<br><br>
-                        <em>Aide : Assurez-vous d'avoir rempli vos variables GITHUB_USER et REPO_NAME correctement dans le script HTML.</em>
+                        <strong>Erreur d'initialisation :</strong> ${escapeHtml(error.message)}<br><br>
+                        <em>Aide : Assurez-vous d'avoir rempli vos variables GITHUB_USER, REPO_NAME et BRANCH correctement, et que le dépôt est public.</em>
                     </div>`;
             }
         }
 
-        // Parcourir un sous-dossier spécifique (ex: json/Transmission)
-        async function scanFolder(path, folderName) {
+        // Télécharger le JSON brut d'un fichier (via le CDN jsDelivr) et l'ajouter au tableau global
+        async function loadJsonFile(fileUrl, category) {
             try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
-                const response = await fetch(url);
+                const response = await fetch(fileUrl);
                 if (!response.ok) return;
-                const files = await response.json();
-        
-                const filePromises = files
-                    .filter(f => f.type === "file" && f.name.endsWith('.json'))
-                    .map(f => loadJsonFile(f.download_url, folderName));
-                
-                await Promise.all(filePromises);
+                const data = await response.json();
+
+                // On associe dynamiquement le nom du dossier d'origine à l'article pour le filtrage
+                data.categorie = category;
+                allArticles.push(data);
             } catch (e) {
-                console.error(`Erreur lors du scan du dossier ${folderName}:`, e);
+                console.error("Erreur de décodage du fichier JSON : " + fileUrl, e);
             }
         }
 
-        // Télécharger le JSON brut d'un fichier et l'ajouter au tableau global
-        async function loadJsonFile(downloadUrl, category) {
-            try {
-                const response = await fetch(downloadUrl);
-                if (!response.ok) return;
-                const data = await response.json();
-                
-                // On associe dynamiquement le nom du dossier d'origine à l'article pour le filtrage
-                data.categorie = category; 
-                allArticles.push(data);
-            } catch (e) {
-                console.error("Erreur de décodage du fichier JSON : " + downloadUrl, e);
-            }
+        // Échapper les caractères HTML pour éviter les injections / affichages cassés
+        function escapeHtml(str) {
+            if (str === undefined || str === null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         // Générer le code HTML des articles à l'écran
         function renderArticles(articles) {
             const container = document.getElementById('articles-container');
-            
+
             if (articles.length === 0) {
                 container.innerHTML = '<div class="loader">Aucun article trouvé dans cette sélection.</div>';
                 return;
@@ -216,13 +226,13 @@
 
             container.innerHTML = sortedArticles.map(art => `
                 <article class="article-card">
-                    <h2>${art.titre || "Article sans titre"}</h2>
+                    <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
                     <div class="meta">
-                        ${art.auteur ? `Par <strong>${art.auteur}</strong>` : ''} 
+                        ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
                         ${art.date ? `• Le ${formatDate(art.date)}` : ''}
-                        <span class="category-tag">${art.categorie === 'Racine' ? 'Général' : art.categorie}</span>
+                        <span class="category-tag">${escapeHtml(art.categorie === 'Racine' ? 'Général' : art.categorie)}</span>
                     </div>
-                    <div class="content">${art.contenu || "Contenu vide."}</div>
+                    <div class="content">${escapeHtml(art.contenu) || "Contenu vide."}</div>
                 </article>
             `).join('');
         }
