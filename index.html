@@ -1,1 +1,251 @@
-index
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Connaissances Militaires</title>
+    <style>
+        :root {
+            --primary: #1b365d;
+            --background: #f4f6f9;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --accent: #2c5282;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            max-width: 900px;
+            margin: 0 auto 30px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 15px;
+        }
+        h1 { margin: 0; color: var(--primary); font-size: 24px; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        select {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: pointer;
+            min-width: 200px;
+            outline: none;
+        }
+        select:focus {
+            border-color: var(--primary);
+        }
+        #articles-container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+        .article-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .article-card:hover {
+            transform: translateY(-2px);
+        }
+        .article-card h2 { margin-top: 0; color: var(--primary); font-size: 20px; }
+        .meta { font-size: 0.85em; color: #666; margin-bottom: 15px; }
+        .category-tag {
+            display: inline-block;
+            background: #ebf8ff;
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .content {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .loader { text-align: center; font-size: 18px; color: #666; padding: 40px 0; }
+        .error-msg { color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📖 Base de Connaissances</h1>
+        <div class="controls">
+            <!-- Menu déroulant dynamique -->
+            <select id="category-select">
+                <option value="Tout">🌍 Tout (Toutes les parties)</option>
+            </select>
+        </div>
+    </header>
+
+    <div id="articles-container">
+        <div class="loader">Initialisation et lecture du dépôt GitHub...</div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION : REMPLACEZ PAR VOS INFOS
+        // ==========================================
+        const GITHUB_USER = "VOTRE_NOM_UTILISATEUR"; 
+        const REPO_NAME = "VOTRE_NOM_DE_DEPOT";
+        const BRANCH = "main"; 
+
+        // URLs de l'API GitHub
+        const BASE_API_URL = `https://github.com{GITHUB_USER}/${REPO_NAME}/contents/json?ref=${BRANCH}`;
+        
+        let allArticles = []; // Contiendra la totalité des fichiers JSON chargés
+
+        // Lancement de l'application
+        init();
+
+        async function init() {
+            try {
+                // 1. Récupération du contenu du dossier principal /json
+                const response = await fetch(BASE_API_URL);
+                if (!response.ok) {
+                    throw new Error("Impossible d'accéder au dossier 'json'. Vérifiez qu'il existe et qu'il contient des fichiers.");
+                }
+                const items = await response.json();
+
+                const selectEl = document.getElementById('category-select');
+                const fetchPromises = [];
+
+                // 2. Analyse des éléments trouvés dans /json
+                for (const item of items) {
+                    if (item.type === "dir") {
+                        // C'est un sous-dossier (ex: Transmission) -> On l'ajoute comme option au menu déroulant
+                        const option = document.createElement('option');
+                        option.value = item.name;
+                        option.textContent = item.name;
+                        selectEl.appendChild(option);
+
+                        // On lance le scan des fichiers JSON présents à l'intérieur de ce sous-dossier
+                        fetchPromises.push(scanFolder(item.path, item.name));
+                    } 
+                    else if (item.type === "file" && item.name.endsWith('.json')) {
+                        // C'est un fichier JSON situé directement à la racine du dossier /json
+                        fetchPromises.push(loadJsonFile(item.download_url, "Racine"));
+                    }
+                }
+
+                // 3. Attente du chargement complet de l'intégralité des fichiers de toutes les promesses
+                await Promise.all(fetchPromises);
+
+                // Activation de l'écouteur de changement sur le menu déroulant
+                selectEl.addEventListener('change', filterArticles);
+
+                // Premier affichage : option "Tout" par défaut
+                renderArticles(allArticles);
+
+            } catch (error) {
+                document.getElementById('articles-container').innerHTML = `
+                    <div class="error-msg">
+                        <strong>Erreur d'initialisation :</strong> ${error.message}<br><br>
+                        <em>Aide : Assurez-vous d'avoir rempli vos variables GITHUB_USER et REPO_NAME correctement dans le script HTML.</em>
+                    </div>`;
+            }
+        }
+
+        // Parcourir un sous-dossier spécifique (ex: json/Transmission)
+        async function scanFolder(path, folderName) {
+            try {
+                const url = `https://github.com{GITHUB_USER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
+                const response = await fetch(url);
+                if (!response.ok) return;
+                const files = await response.json();
+
+                // Filtrer pour ne garder que les extensions .json du dossier
+                const filePromises = files
+                    .filter(f => f.type === "file" && f.name.endsWith('.json'))
+                    .map(f => loadJsonFile(f.download_url, folderName));
+                
+                await Promise.all(filePromises);
+            } catch (e) {
+                console.error(`Erreur lors du scan du dossier ${folderName}:`, e);
+            }
+        }
+
+        // Télécharger le JSON brut d'un fichier et l'ajouter au tableau global
+        async function loadJsonFile(downloadUrl, category) {
+            try {
+                const response = await fetch(downloadUrl);
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                // On associe dynamiquement le nom du dossier d'origine à l'article pour le filtrage
+                data.categorie = category; 
+                allArticles.push(data);
+            } catch (e) {
+                console.error("Erreur de décodage du fichier JSON : " + downloadUrl, e);
+            }
+        }
+
+        // Générer le code HTML des articles à l'écran
+        function renderArticles(articles) {
+            const container = document.getElementById('articles-container');
+            
+            if (articles.length === 0) {
+                container.innerHTML = '<div class="loader">Aucun article trouvé dans cette sélection.</div>';
+                return;
+            }
+
+            // Tri optionnel des articles du plus récent au plus ancien si le champ date est présent
+            const sortedArticles = [...articles].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+            container.innerHTML = sortedArticles.map(art => `
+                <article class="article-card">
+                    <h2>${art.titre || "Article sans titre"}</h2>
+                    <div class="meta">
+                        ${art.auteur ? `Par <strong>${art.auteur}</strong>` : ''} 
+                        ${art.date ? `• Le ${formatDate(art.date)}` : ''}
+                        <span class="category-tag">${art.categorie === 'Racine' ? 'Général' : art.categorie}</span>
+                    </div>
+                    <div class="content">${art.contenu || "Contenu vide."}</div>
+                </article>
+            `).join('');
+        }
+
+        // Filtrer les données en fonction du choix du menu déroulant
+        function filterArticles(e) {
+            const selected = e.target.value;
+            if (selected === "Tout") {
+                renderArticles(allArticles);
+            } else {
+                const filtered = allArticles.filter(art => art.categorie === selected);
+                renderArticles(filtered);
+            }
+        }
+
+        // Petite fonction utilitaire pour rendre la date plus lisible
+        function formatDate(dateString) {
+            try {
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                return new Date(dateString).toLocaleDateString('fr-FR', options);
+            } catch (e) {
+                return dateString;
+            }
+        }
+    </script>
+</body>
+</html>
