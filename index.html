@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base de Connaissances Armée Française</title>
+    <title>Base de Connaissances Militaires</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231b365d'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6l2 4 4.5.5-3.5 3 1 4.5-4-2.5-4 2.5 1-4.5-3.5-3 4.5-.5 2-4z'/%3E%3C/svg%3E">
 
-    
     <style>
         :root {
             --primary: #1b365d;
@@ -115,7 +114,7 @@
 <body>
 
     <header>
-        <h1>Base de Connaissances Armée Française</h1>
+        <h1>📖 Base de Connaissances</h1>
         <div class="controls">
             <!-- Menu déroulant dynamique -->
             <select id="category-select">
@@ -125,7 +124,7 @@
     </header>
 
     <div id="articles-container">
-        <div class="loader">Initialisation et lecture du dépôt (via jsDelivr)...</div>
+        <div class="loader">Initialisation et lecture du dépôt...</div>
     </div>
 
     <script>
@@ -139,59 +138,77 @@
         // Dossier racine (dans le repo) contenant les fichiers JSON
         const ROOT_FOLDER = "json";
 
-        // API jsDelivr : liste à plat de TOUS les fichiers du repo, en une seule requête
-        const JSDELIVR_LIST_URL = `https://data.jsdelivr.com/v1/package/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH}/flat`;
+        // API GitHub : sert UNIQUEMENT à découvrir la liste des fichiers.
+        // Le résultat est mis en cache dans le navigateur (voir CACHE_DURATION_MS) pour éviter
+        // de rappeler l'API à chaque chargement de page.
+        const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;
 
-        // CDN jsDelivr : sert le contenu brut des fichiers, sans limite de requêtes
+        // CDN jsDelivr : sert le contenu brut des fichiers, rapide et sans limite gênante
         const JSDELIVR_CDN_BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH}`;
+
+        // Durée de vie du cache de structure (liste des dossiers/fichiers), en millisecondes.
+        // 10 minutes par défaut : un bon compromis entre fraîcheur et économie d'appels API.
+        const CACHE_DURATION_MS = 10 * 60 * 1000;
+        const CACHE_KEY = `armee-fr-structure-cache:${GITHUB_USER}/${REPO_NAME}@${BRANCH}`;
 
         let allArticles = []; // Contiendra la totalité des fichiers JSON chargés
 
         // Lancement de l'application
         init();
 
+        // Lit la structure en cache si elle existe et n'est pas expirée. Retourne null sinon.
+        function readStructureCache() {
+            try {
+                const raw = localStorage.getItem(CACHE_KEY);
+                if (!raw) return null;
+                const cached = JSON.parse(raw);
+                if (Date.now() - cached.timestamp > CACHE_DURATION_MS) return null; // expiré
+                return cached.structure;
+            } catch (e) {
+                // localStorage indisponible (ex : aperçu en bac à sable) -> on ignore simplement le cache
+                return null;
+            }
+        }
+
+        function writeStructureCache(structure) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), structure }));
+            } catch (e) {
+                // Échec silencieux si localStorage est indisponible ou plein : pas bloquant
+            }
+        }
+
         async function init() {
             try {
-                // 1. Récupération de la liste complète des fichiers du repo via jsDelivr
-                const response = await fetch(JSDELIVR_LIST_URL);
-                if (!response.ok) {
-                    throw new Error(`Impossible de lister les fichiers du dépôt (code ${response.status}). Vérifiez GITHUB_USER, REPO_NAME et BRANCH.`);
-                }
-                const data = await response.json();
-                const allFiles = data.files || []; // ex: [{ name: "/json/Transmission/fiche1.json", ... }, ...]
+                // 1. On tente d'abord de lire la structure (dossiers + fichiers) depuis le cache local
+                //    (sauf si l'utilisateur force un rafraîchissement via ?refresh dans l'URL)
+                const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
+                let structure = forceRefresh ? null : readStructureCache();
 
-                // 2. On ne garde que les fichiers .json situés dans le dossier ROOT_FOLDER
-                const prefix = `/${ROOT_FOLDER}/`;
-                const jsonFiles = allFiles.filter(f => f.name.startsWith(prefix) && f.name.endsWith('.json'));
-
-                if (jsonFiles.length === 0) {
-                    throw new Error(`Aucun fichier .json trouvé dans le dossier "${ROOT_FOLDER}/". Vérifiez le nom du dossier (ROOT_FOLDER) et que le repo est public.`);
+                if (!structure) {
+                    // Cache absent ou expiré -> on interroge l'API GitHub (une seule fois par dossier)
+                    structure = await fetchStructureFromGitHub();
+                    writeStructureCache(structure);
                 }
 
-                // 3. Détermination de la catégorie (sous-dossier) de chaque fichier + remplissage du menu déroulant
-                const categories = new Set();
+                // 2. Construction du menu déroulant + chargement du contenu de chaque fichier via jsDelivr
                 const selectEl = document.getElementById('category-select');
                 const fetchPromises = [];
 
-                for (const file of jsonFiles) {
-                    // file.name ex: "/json/Transmission/fiche1.json" ou "/json/fiche.json"
-                    const relativePath = file.name.slice(prefix.length); // "Transmission/fiche1.json" ou "fiche.json"
-                    const parts = relativePath.split('/');
-                    const category = parts.length > 1 ? parts[0] : "Racine";
-
-                    if (!categories.has(category)) {
-                        categories.add(category);
+                for (const category of Object.keys(structure)) {
+                    if (category !== "Racine") {
                         const option = document.createElement('option');
                         option.value = category;
                         option.textContent = category;
                         selectEl.appendChild(option);
                     }
-
-                    const fileUrl = `${JSDELIVR_CDN_BASE}${file.name}`;
-                    fetchPromises.push(loadJsonFile(fileUrl, category));
+                    for (const filePath of structure[category]) {
+                        const fileUrl = `${JSDELIVR_CDN_BASE}/${filePath}`;
+                        fetchPromises.push(loadJsonFile(fileUrl, category));
+                    }
                 }
 
-                // 4. Attente du chargement complet de tous les fichiers
+                // 3. Attente du chargement complet de tous les fichiers
                 await Promise.all(fetchPromises);
 
                 // Activation de l'écouteur de changement sur le menu déroulant
@@ -209,11 +226,60 @@
             }
         }
 
+        // Interroge l'API GitHub pour construire la structure { categorie: [chemins de fichiers .json] }
+        async function fetchStructureFromGitHub() {
+            const response = await fetch(`${GITHUB_API_BASE}/${ROOT_FOLDER}?ref=${BRANCH}`);
+            if (response.status === 403) {
+                throw new Error("Limite de requêtes de l'API GitHub atteinte (60/heure sans authentification). Réessayez plus tard.");
+            }
+            if (!response.ok) {
+                throw new Error(`Impossible d'accéder au dossier "${ROOT_FOLDER}" (code ${response.status}). Vérifiez GITHUB_USER, REPO_NAME, BRANCH et que le dépôt est public.`);
+            }
+            const items = await response.json();
+
+            const structure = {};
+            const scanPromises = [];
+
+            for (const item of items) {
+                if (item.type === "dir") {
+                    scanPromises.push(
+                        fetchFolderFiles(item.path).then(paths => {
+                            structure[item.name] = paths;
+                        })
+                    );
+                } else if (item.type === "file" && item.name.endsWith('.json')) {
+                    if (!structure["Racine"]) structure["Racine"] = [];
+                    structure["Racine"].push(item.path);
+                }
+            }
+
+            await Promise.all(scanPromises);
+            return structure;
+        }
+
+        // Liste les fichiers .json d'un sous-dossier via l'API GitHub, renvoie leurs chemins
+        async function fetchFolderFiles(path) {
+            try {
+                const response = await fetch(`${GITHUB_API_BASE}/${path}?ref=${BRANCH}`);
+                if (!response.ok) return [];
+                const files = await response.json();
+                return files
+                    .filter(f => f.type === "file" && f.name.endsWith('.json'))
+                    .map(f => f.path);
+            } catch (e) {
+                console.error(`Erreur lors du scan du dossier ${path}:`, e);
+                return [];
+            }
+        }
+
         // Télécharger le JSON brut d'un fichier (via le CDN jsDelivr) et l'ajouter au tableau global
         async function loadJsonFile(fileUrl, category) {
             try {
                 const response = await fetch(fileUrl);
-                if (!response.ok) return;
+                if (!response.ok) {
+                    console.error("Fichier introuvable sur le CDN : " + fileUrl + " (code " + response.status + ")");
+                    return;
+                }
                 const data = await response.json();
 
                 // On associe dynamiquement le nom du dossier d'origine à l'article pour le filtrage
