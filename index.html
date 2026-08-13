@@ -85,6 +85,28 @@
             line-height: 1.6;
             white-space: pre-wrap;
         }
+        .content.is-collapsed {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .toggle-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 14px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: var(--accent);
+            background: #ebf8ff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .toggle-btn:hover {
+            background: #d6ecfb;
+        }
         .loader { text-align: center; font-size: 18px; color: #666; padding: 40px 0; }
         .error-msg { color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 6px; }
     </style>
@@ -224,7 +246,15 @@
             // Tri optionnel des articles du plus récent au plus ancien si le champ date est présent
             const sortedArticles = [...articles].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-            container.innerHTML = sortedArticles.map(art => `
+            // Seuil (en caractères) au-delà duquel on tronque le contenu par défaut
+            const TRUNCATE_THRESHOLD = 220;
+
+            container.innerHTML = sortedArticles.map((art, index) => {
+                const contentText = escapeHtml(art.contenu) || "Contenu vide.";
+                const isLong = (art.contenu || '').length > TRUNCATE_THRESHOLD;
+                const contentId = `content-${index}`;
+
+                return `
                 <article class="article-card">
                     <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
                     <div class="meta">
@@ -232,9 +262,19 @@
                         ${art.date ? `• Le ${formatDate(art.date)}` : ''}
                         <span class="category-tag">${escapeHtml(art.categorie === 'Racine' ? 'Général' : art.categorie)}</span>
                     </div>
-                    <div class="content">${escapeHtml(art.contenu) || "Contenu vide."}</div>
+                    <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
+                    ${isLong ? `<button class="toggle-btn" onclick="toggleContent('${contentId}', this)">Voir plus</button>` : ''}
                 </article>
-            `).join('');
+            `;
+            }).join('');
+        }
+
+        // Déplie / replie le contenu complet d'un article, sans recharger la page
+        function toggleContent(contentId, buttonEl) {
+            const el = document.getElementById(contentId);
+            if (!el) return;
+            const isNowCollapsed = el.classList.toggle('is-collapsed');
+            buttonEl.textContent = isNowCollapsed ? 'Voir plus' : 'Voir moins';
         }
 
         // Filtrer les données en fonction du choix du menu déroulant
