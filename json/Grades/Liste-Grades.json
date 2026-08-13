@@ -1,0 +1,151 @@
+{
+  "titre": "Les grades dans l'armée de Terre",
+  "auteur": "Armée de Terre",
+  "date": "2025-12-13",
+  "source": "https://www.defense.gouv.fr/terre/grades-larmee-terre",
+  "contenu": "Les grades et appellations en usage aujourd'hui dans l'armée de Terre sont issus des évolutions des armées de la langue française et de l'histoire qui ont forgé ces titres avec le temps. On distingue quatre catégories : les militaires du rang, les sous-officiers, les officiers et les officiers généraux. Les galons sont d'or ou d'argent pour les officiers et les sous-officiers, selon l'arme d'appartenance.",
+  "categories": {
+    "dignite": [
+      {
+        "grade": "Maréchal de France",
+        "description": "Le maréchalat n'est pas un grade mais une dignité. Les maréchaux arborent un bâton de velours bleu parsemé d'étoiles sur lequel est écrit : \"Terror belli, decus pacis\" (terreur durant la guerre, ornement pour le temps de paix). Elle ne peut être conférée qu'à un officier général ayant commandé victorieusement en temps de guerre.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/Mar%C3%A9chal%20de%20France.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      }
+    ],
+    "officiers_generaux": [
+      {
+        "grade": "Général d'armée",
+        "description": "Grade à cinq étoiles. Le grade de général de division donne naissance à cette appellation, simplifiée par un décret du 6 juin 1939.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/G%C3%A9n%C3%A9ral%20d%27arm%C3%A9e.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Terre"
+      },
+      {
+        "grade": "Général de corps d'armée",
+        "description": "Grade à quatre étoiles, issu du grade de général de division. Une circulaire du 17 mars 1921 attribue les rangs et prérogatives de commandant de corps d'armée aux généraux de division.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/G%C3%A9n%C3%A9ral%20de%20corps%20d%27arm%C3%A9e.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Général de division",
+        "description": "Grade créé en 1621 sous l'appellation de lieutenant-général. Jusqu'en 1914, c'est le grade le plus élevé de la hiérarchie. Il permet d'accéder aux fonctions de commandant de corps d'armée et d'armée.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/G%C3%A9n%C3%A9ral%20de%20division.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Général de brigade",
+        "description": "Grade créé au XVIe siècle, établi par décret le 28 février 1848. Le général de brigade porte deux étoiles sur les manches de son uniforme et sur son képi.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/G%C3%A9n%C3%A9ral%20de%20brigade.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      }
+    ],
+    "officiers": [
+      {
+        "grade": "Colonel",
+        "description": "Apparu au XVIe siècle, il provient de l'italien \"colonello\", chef de colonne. Il est désigné comme le \"père du régiment\".",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/colonel.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Lieutenant-colonel",
+        "description": "D'abord remplaçant du colonel, il devient le second des officiers du régiment lorsque le roi devient colonel-général de son infanterie en 1661. Il remplace le colonel lors de ses absences.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/lieutenant-colonel.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Commandant",
+        "description": "Dénomination générique désignant la personne à la tête d'une troupe, d'un service ou d'une situation militaire. Commandant est le premier grade des officiers supérieurs.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/commandant.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Capitaine",
+        "description": "Le capitaine est par excellence celui qui commande une compagnie, un escadron ou une batterie, c'est-à-dire une centaine d'hommes.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/capitaine.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Lieutenant",
+        "description": "Formé des mots \"tenant\" et \"lieu\", c'est-à-dire remplaçant. D'abord terme administratif, il devient un grade vers 1540. Il désigne celui qui est appelé à remplacer son chef immédiat.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/lieutenant.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Sous-lieutenant",
+        "description": "Grade apparaissant dès 1669. Employés dans les unités constitutives des régiments, les sous-lieutenants sont chargés des détails du service et de l'instruction.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Sous-lieutenant.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Aspirant",
+        "description": "Grade situé à la charnière du corps des sous-officiers et des officiers. Il désigne, à l'origine, un sous-officier qui aspire à entrer dans le corps des officiers.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Aspirant.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      }
+    ],
+    "sous_officiers": [
+      {
+        "grade": "Major",
+        "description": "Grade très récent pour les sous-officiers, dans ses attributions et fonctions. Créé en 1972, issu d'une distinction de fonction.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Major.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Adjudant-chef",
+        "description": "Poste créé en 1912 pour améliorer la situation d'un adjudant que l'on n'était pas certain de faire passer sous-lieutenant. Réservé aux adjudants de plus de dix ans d'ancienneté et deux ans de grade.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Adjudant-chef.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Adjudant",
+        "description": "À l'origine placé hors des compagnies, au niveau des bataillons et régiments, c'est un sous-officier d'état-major essentiellement chargé du service intérieur, de la logistique, des transmissions et de l'exécution des ordres imprévus.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Adjudant.jpg",
+        "credit": "armée de Terre/Défense"
+      },
+      {
+        "grade": "Sergent-chef / maréchal des logis-chef",
+        "description": "Créé à l'occasion de la réforme de 1928, ce grade vise à remplacer les grades de sergent-major et sergent-fourrier, qui étaient des grades administratifs plus que d'épée.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Sergent-chef.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Sergent / maréchal des logis",
+        "description": "Premier grade de la famille des sous-officiers. Dans les troupes historiquement dotées de chevaux, il se dénomme maréchal des logis, car il était alors responsable des écuries.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Sergent.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      }
+    ],
+    "militaires_du_rang": [
+      {
+        "grade": "Caporal-chef de 1re classe",
+        "description": "Distinction concernant les caporaux-chefs ayant signé un contrat au-delà de 11 ans de service. Elle peut être portée au premier jour de la 12e année de service.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Caporal-chef%20de%201re%20classe.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Caporal-chef / brigadier-chef",
+        "description": "Grade né de la nécessité de distinguer les hommes du rang de par la diversité des rôles et missions impartis aux caporaux et du nombre grandissant de ceux-ci.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/Grade%20de%20caporal-chef.png",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Caporal / brigadier",
+        "description": "Le caporal est le chef direct du groupe de combat. C'est à lui que s'adressent les hommes de troupe pour les ordres et détails du service intérieur. Dans les armes autrefois dotées de chevaux, on le nommait brigadier.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/caporal%20brigadier.png",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Soldat de 1re classe",
+        "description": "Il ne s'agit pas d'un grade mais d'une distinction qu'acquièrent les hommes du rang avant de postuler pour le grade de caporal.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/Soldat%20de%201re%20classe.png",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      },
+      {
+        "grade": "Soldat",
+        "description": "Tire son origine de l'italien \"soldare\", c'est-à-dire qui reçoit une solde. Il remplace à partir du XVIIe siècle le mot français \"soudare\", devenu péjoratif, qui désignait les hommes en bandes armées.",
+        "image": "https://www.defense.gouv.fr/sites/default/files/terre/Soldat.jpg",
+        "credit": "A. Klopfenstein/armée de Terre/Défense"
+      }
+    ]
+  }
+}
