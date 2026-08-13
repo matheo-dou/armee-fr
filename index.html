@@ -172,12 +172,11 @@
         // Parcourir un sous-dossier spécifique (ex: json/Transmission)
         async function scanFolder(path, folderName) {
             try {
-                const url = `https://github.com{GITHUB_USER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
                 const response = await fetch(url);
                 if (!response.ok) return;
                 const files = await response.json();
-
-                // Filtrer pour ne garder que les extensions .json du dossier
+        
                 const filePromises = files
                     .filter(f => f.type === "file" && f.name.endsWith('.json'))
                     .map(f => loadJsonFile(f.download_url, folderName));
