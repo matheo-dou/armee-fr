@@ -180,85 +180,50 @@
         // ==========================================
         // CONFIGURATION : REMPLACEZ PAR VOS INFOS
         // ==========================================
-        const GITHUB_USER = "matheo-dou";
-        const REPO_NAME = "armee-fr";
-        const BRANCH = "main";
+        // ID du Google Sheet : dans l'URL docs.google.com/spreadsheets/d/CET_ID_LA/edit
+        const SHEET_ID = "1yAZsph_IjBc5hCs3EGj0eb0_4Yo0OKoZiLLnRiVc3h8";
+        // Onglet des articles : colonnes "id", "categorie" (identifiant), "contenu" (JSON)
+        const SHEET_ARTICLES = "Articles";
+        // Onglet des catégories : colonnes "id", "Nom Categorie"
+        const SHEET_CATEGORIES = "Categories";
 
-        // Dossier racine (dans le repo) contenant les fichiers JSON
-        const ROOT_FOLDER = "json";
-
-        // API GitHub : sert UNIQUEMENT à découvrir la liste des fichiers.
-        // Le résultat est mis en cache dans le navigateur (voir CACHE_DURATION_MS) pour éviter
-        // de rappeler l'API à chaque chargement de page.
-        const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;
-
-        // CDN jsDelivr : sert le contenu brut des fichiers, rapide et sans limite gênante
-        const JSDELIVR_CDN_BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH}`;
-
-        // Durée de vie du cache de structure (liste des dossiers/fichiers), en millisecondes.
-        // 10 minutes par défaut : un bon compromis entre fraîcheur et économie d'appels API.
-        const CACHE_DURATION_MS = 10 * 60 * 1000;
-        const CACHE_KEY = `armee-fr-structure-cache:${GITHUB_USER}/${REPO_NAME}@${BRANCH}`;
-
-        let allArticles = []; // Contiendra la totalité des fichiers JSON chargés
+        let allArticles = []; // Contiendra la totalité des articles chargés
 
         // Lancement de l'application
         init();
 
-        // Lit la structure en cache si elle existe et n'est pas expirée. Retourne null sinon.
-        function readStructureCache() {
-            try {
-                const raw = localStorage.getItem(CACHE_KEY);
-                if (!raw) return null;
-                const cached = JSON.parse(raw);
-                if (Date.now() - cached.timestamp > CACHE_DURATION_MS) return null; // expiré
-                return cached.structure;
-            } catch (e) {
-                // localStorage indisponible (ex : aperçu en bac à sable) -> on ignore simplement le cache
-                return null;
-            }
-        }
-
-        function writeStructureCache(structure) {
-            try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), structure }));
-            } catch (e) {
-                // Échec silencieux si localStorage est indisponible ou plein : pas bloquant
-            }
-        }
-
         async function init() {
             try {
-                // 1. On tente d'abord de lire la structure (dossiers + fichiers) depuis le cache local
-                //    (sauf si l'utilisateur force un rafraîchissement via ?refresh dans l'URL)
-                const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
-                let structure = forceRefresh ? null : readStructureCache();
-
-                if (!structure) {
-                    // Cache absent ou expiré -> on interroge l'API GitHub (une seule fois par dossier)
-                    structure = await fetchStructureFromGitHub();
-                    writeStructureCache(structure);
+                // 1. Récupération en parallèle des deux onglets
+                const [articleRows, categoryRows] = await Promise.all([
+                    fetchGvizRows(SHEET_ARTICLES, ['id', 'categorie', 'contenu']), // 'Nom Categorie' retiré ici
+                    fetchGvizRows(SHEET_CATEGORIES, ['id', 'Nom Categorie'])
+                ]);
+                
+                if (articleRows.length === 0) {
+                    throw new Error(`Aucune ligne trouvée dans l'onglet "${SHEET_ARTICLES}".`);
                 }
-
-                // 2. Construction du menu déroulant + chargement du contenu de chaque fichier via jsDelivr
+                
+                // 2. Construction de la table de correspondance id de catégorie -> nom affiché
+                const categoryMap = {};
+                categoryRows.forEach(row => {
+                    // Utilisation de la majuscule pour correspondre à la requête
+                    if (row.id) categoryMap[row.id] = row['Nom Categorie'] || row.id;
+                });
+                
+                // ... (L'étape 3 reste exactement la même) ...
+                
+                // 4. Construction du menu déroulant à partir de l'onglet Categories
                 const selectEl = document.getElementById('category-select');
-                const fetchPromises = [];
-
-                for (const category of Object.keys(structure)) {
-                    if (category !== "Racine") {
+                categoryRows
+                    .filter(row => row.id)
+                    .sort((a, b) => (a['Nom Categorie'] || '').localeCompare(b['Nom Categorie'] || ''))
+                    .forEach(row => {
                         const option = document.createElement('option');
-                        option.value = category;
-                        option.textContent = category;
+                        option.value = row.id;
+                        option.textContent = row['Nom Categorie'] || row.id;
                         selectEl.appendChild(option);
-                    }
-                    for (const filePath of structure[category]) {
-                        const fileUrl = `${JSDELIVR_CDN_BASE}/${filePath}`;
-                        fetchPromises.push(loadJsonFile(fileUrl, category));
-                    }
-                }
-
-                // 3. Attente du chargement complet de tous les fichiers
-                await Promise.all(fetchPromises);
+                    });
 
                 // Activation de l'écouteur de changement sur le menu déroulant
                 selectEl.addEventListener('change', filterArticles);
@@ -270,73 +235,52 @@
                 document.getElementById('articles-container').innerHTML = `
                     <div class="error-msg">
                         <strong>Erreur d'initialisation :</strong> ${escapeHtml(error.message)}<br><br>
-                        <em>Aide : Assurez-vous d'avoir rempli vos variables GITHUB_USER, REPO_NAME et BRANCH correctement, et que le dépôt est public.</em>
+                        <em>Aide : Assurez-vous d'avoir rempli SHEET_ID correctement, que les onglets "${SHEET_ARTICLES}" et "${SHEET_CATEGORIES}" existent, et que le Sheet est partagé publiquement en lecture.</em>
                     </div>`;
             }
         }
 
-        // Interroge l'API GitHub pour construire la structure { categorie: [chemins de fichiers .json] }
-        async function fetchStructureFromGitHub() {
-            const response = await fetch(`${GITHUB_API_BASE}/${ROOT_FOLDER}?ref=${BRANCH}`);
-            if (response.status === 403) {
-                throw new Error("Limite de requêtes de l'API GitHub atteinte (60/heure sans authentification). Réessayez plus tard.");
-            }
+        // Interroge un onglet du Google Sheet via l'API "gviz" (lecture publique, pas de clé nécessaire)
+        // et renvoie ses lignes sous forme d'objets { nomColonne: valeur, ... }, en ne gardant que
+        // les colonnes demandées dans requiredCols (comparaison insensible à la casse sur les en-têtes).
+        async function fetchGvizRows(sheetName, requiredCols) {
+            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&headers=1`;
+            const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`Impossible d'accéder au dossier "${ROOT_FOLDER}" (code ${response.status}). Vérifiez GITHUB_USER, REPO_NAME, BRANCH et que le dépôt est public.`);
+                throw new Error(`Impossible d'accéder à l'onglet "${sheetName}" (code ${response.status}). Vérifiez SHEET_ID et les droits de partage.`);
             }
-            const items = await response.json();
+            const text = await response.text();
 
-            const structure = {};
-            const scanPromises = [];
+            // La réponse "gviz" est enveloppée dans un appel JS : google.visualization.Query.setResponse({...});
+            const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+            if (!match) {
+                throw new Error(`Réponse inattendue pour l'onglet "${sheetName}". Vérifiez que cet onglet existe bien.`);
+            }
+            const data = JSON.parse(match[1]);
 
-            for (const item of items) {
-                if (item.type === "dir") {
-                    scanPromises.push(
-                        fetchFolderFiles(item.path).then(paths => {
-                            structure[item.name] = paths;
-                        })
-                    );
-                } else if (item.type === "file" && item.name.endsWith('.json')) {
-                    if (!structure["Racine"]) structure["Racine"] = [];
-                    structure["Racine"].push(item.path);
+            if (!data.table || !data.table.cols) {
+                throw new Error(`Structure de réponse invalide pour l'onglet "${sheetName}".`);
+            }
+
+            const colLabels = data.table.cols.map(c => (c.label || '').trim().toLowerCase());
+            const colIndexes = {};
+            for (const col of requiredCols) {
+                // Ajout de .toLowerCase() sur "col" pour comparer correctement
+                const idx = colLabels.indexOf(col.toLowerCase());
+                if (idx === -1) {
+                    throw new Error(`Colonne "${col}" introuvable dans l'onglet "${sheetName}". Vérifiez les en-têtes de colonnes.`);
                 }
+                colIndexes[col] = idx;
             }
 
-            await Promise.all(scanPromises);
-            return structure;
-        }
-
-        // Liste les fichiers .json d'un sous-dossier via l'API GitHub, renvoie leurs chemins
-        async function fetchFolderFiles(path) {
-            try {
-                const response = await fetch(`${GITHUB_API_BASE}/${path}?ref=${BRANCH}`);
-                if (!response.ok) return [];
-                const files = await response.json();
-                return files
-                    .filter(f => f.type === "file" && f.name.endsWith('.json'))
-                    .map(f => f.path);
-            } catch (e) {
-                console.error(`Erreur lors du scan du dossier ${path}:`, e);
-                return [];
-            }
-        }
-
-        // Télécharger le JSON brut d'un fichier (via le CDN jsDelivr) et l'ajouter au tableau global
-        async function loadJsonFile(fileUrl, category) {
-            try {
-                const response = await fetch(fileUrl);
-                if (!response.ok) {
-                    console.error("Fichier introuvable sur le CDN : " + fileUrl + " (code " + response.status + ")");
-                    return;
+            return (data.table.rows || []).map(r => {
+                const rowObj = {};
+                for (const col of requiredCols) {
+                    const cell = r.c[colIndexes[col]];
+                    rowObj[col] = cell && cell.v !== null && cell.v !== undefined ? String(cell.v) : '';
                 }
-                const data = await response.json();
-
-                // On associe dynamiquement le nom du dossier d'origine à l'article pour le filtrage
-                data.categorie = category;
-                allArticles.push(data);
-            } catch (e) {
-                console.error("Erreur de décodage du fichier JSON : " + fileUrl, e);
-            }
+                return rowObj;
+            }).filter(rowObj => rowObj.id); // on ignore les lignes vides (sans id)
         }
 
         // Échapper les caractères HTML pour éviter les injections / affichages cassés
@@ -387,7 +331,7 @@
                     <div class="meta">
                         ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
                         ${art.date ? `• Le ${formatDate(art.date)}` : ''}
-                        <span class="category-tag">${escapeHtml(art.categorie === 'Racine' ? 'Général' : art.categorie)}</span>
+                        <span class="category-tag">${escapeHtml(art.categorie)}</span>
                     </div>
                     <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
                     ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
@@ -441,13 +385,14 @@
             if (bottomBtn) bottomBtn.style.display = isNowCollapsed ? 'none' : '';
         }
 
-        // Filtrer les données en fonction du choix du menu déroulant
+        // Filtrer les données en fonction du choix du menu déroulant (comparaison sur l'ID, stable
+        // même si le nom de la catégorie est renommé plus tard dans l'onglet Categories)
         function filterArticles(e) {
             const selected = e.target.value;
             if (selected === "Tout") {
                 renderArticles(allArticles);
             } else {
-                const filtered = allArticles.filter(art => art.categorie === selected);
+                const filtered = allArticles.filter(art => art.categorieId === selected);
                 renderArticles(filtered);
             }
         }
