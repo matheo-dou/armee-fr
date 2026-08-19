@@ -389,9 +389,9 @@
                         ${art.date ? `• Le ${formatDate(art.date)}` : ''}
                         <span class="category-tag">${escapeHtml(art.categorie === 'Racine' ? 'Général' : art.categorie)}</span>
                     </div>
-                    ${isLong ? `<button class="toggle-btn" id="${topBtnId}" onclick="toggleContent('${index}')">Voir plus</button>` : ''}
                     <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
                     ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
+                    ${isLong ? `<button class="toggle-btn" id="${topBtnId}" onclick="toggleContent('${index}')">Voir plus</button>` : ''}
                     ${isLong ? `<button class="toggle-btn" id="${bottomBtnId}" style="display:none" onclick="toggleContent('${index}')">Voir moins</button>` : ''}
                 </article>
             `;
