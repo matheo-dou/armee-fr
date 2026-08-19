@@ -107,6 +107,52 @@
         .toggle-btn:hover {
             background: #d6ecfb;
         }
+        .grades-section-title {
+            margin: 22px 0 10px 0;
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .grades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+        .grade-card {
+            background: var(--background);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .grade-card img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background: #ddd;
+        }
+        .grade-card h3 {
+            margin: 0 0 6px 0;
+            font-size: 15px;
+            color: var(--primary);
+        }
+        .grade-card p {
+            margin: 0;
+            font-size: 0.85em;
+            line-height: 1.5;
+            color: #555;
+        }
+        .grade-card .credit {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.75em;
+            color: #999;
+        }
         .loader { text-align: center; font-size: 18px; color: #666; padding: 40px 0; }
         .error-msg { color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 6px; }
     </style>
@@ -321,6 +367,10 @@
                 const isLong = (art.contenu || '').length > TRUNCATE_THRESHOLD;
                 const contentId = `content-${index}`;
 
+                // Support optionnel d'une structure "categories" : { nomCategorie: [ {grade, description, image, credit}, ... ] }
+                // Utilisée pour les fiches type "grades" avec une image par grade.
+                const gradesHtml = art.categories ? renderGradeCategories(art.categories) : '';
+
                 return `
                 <article class="article-card">
                     <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
@@ -331,8 +381,36 @@
                     </div>
                     <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
                     ${isLong ? `<button class="toggle-btn" onclick="toggleContent('${contentId}', this)">Voir plus</button>` : ''}
+                    ${gradesHtml}
                 </article>
             `;
+            }).join('');
+        }
+
+        // Formate le nom d'une clé de catégorie ("officiers_generaux" -> "Officiers Generaux")
+        function formatCategoryLabel(key) {
+            return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        // Génère le HTML d'une grille de grades (image + nom + description) à partir de la structure "categories"
+        function renderGradeCategories(categories) {
+            return Object.keys(categories).map(categoryKey => {
+                const grades = categories[categoryKey];
+                if (!Array.isArray(grades) || grades.length === 0) return '';
+
+                const cardsHtml = grades.map(g => `
+                    <div class="grade-card">
+                        ${g.image ? `<img src="${escapeHtml(g.image)}" alt="${escapeHtml(g.grade)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+                        <h3>${escapeHtml(g.grade) || 'Grade'}</h3>
+                        <p>${escapeHtml(g.description) || ''}</p>
+                        ${g.credit ? `<span class="credit">© ${escapeHtml(g.credit)}</span>` : ''}
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="grades-section-title">${escapeHtml(formatCategoryLabel(categoryKey))}</div>
+                    <div class="grades-grid">${cardsHtml}</div>
+                `;
             }).join('');
         }
 
