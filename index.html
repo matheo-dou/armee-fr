@@ -196,7 +196,8 @@
             try {
                 // 1. Récupération en parallèle des deux onglets
                 const [articleRows, categoryRows] = await Promise.all([
-                    fetchGvizRows(SHEET_ARTICLES, ['id', 'categorie', 'contenu']), // 'Nom Categorie' retiré ici
+                    // IMPORTANT : Conservez les en-têtes exactement tels que demandés
+                    fetchGvizRows(SHEET_ARTICLES, ['id', 'categorie', 'contenu']), 
                     fetchGvizRows(SHEET_CATEGORIES, ['id', 'Nom Categorie'])
                 ]);
                 
@@ -207,21 +208,39 @@
                 // 2. Construction de la table de correspondance id de catégorie -> nom affiché
                 const categoryMap = {};
                 categoryRows.forEach(row => {
-                    // Utilisation de la majuscule pour correspondre à la requête
-                    if (row.id) categoryMap[row.id] = row['Nom Categorie'] || row.id;
+                    // On vérifie que la catégorie a bien un ID ET un nom défini (pas juste un ID isolé)
+                    if (row.id && row['Nom Categorie']) {
+                        categoryMap[row.id] = row['Nom Categorie'];
+                    }
                 });
                 
-                // ... (L'étape 3 reste exactement la même) ...
+                // 3. Parsing du JSON de chaque article + association de sa catégorie
+                for (const row of articleRows) {
+                    try {
+                        const art = JSON.parse(row.contenu);
+                        art.id = row.id;
+                        art.categorieId = row.categorie || '';
+                        
+                        // Nom affiché : résolu via la table de correspondance
+                        art.categorie = art.categorieId && categoryMap[art.categorieId]
+                            ? categoryMap[art.categorieId]
+                            : 'Général';
+                        allArticles.push(art);
+                    } catch (e) {
+                        console.error(`JSON invalide pour la ligne id="${row.id}" :`, e);
+                    }
+                }
                 
                 // 4. Construction du menu déroulant à partir de l'onglet Categories
                 const selectEl = document.getElementById('category-select');
                 categoryRows
-                    .filter(row => row.id)
-                    .sort((a, b) => (a['Nom Categorie'] || '').localeCompare(b['Nom Categorie'] || ''))
+                    // FILTRE CRUCIAL : On ne garde que les catégories qui ont un nom !
+                    .filter(row => row.id && row['Nom Categorie']) 
+                    .sort((a, b) => a['Nom Categorie'].localeCompare(b['Nom Categorie']))
                     .forEach(row => {
                         const option = document.createElement('option');
                         option.value = row.id;
-                        option.textContent = row['Nom Categorie'] || row.id;
+                        option.textContent = row['Nom Categorie'];
                         selectEl.appendChild(option);
                     });
 
