@@ -107,6 +107,9 @@
         .toggle-btn:hover {
             background: #d6ecfb;
         }
+        .grades-wrapper.is-hidden {
+            display: none;
+        }
         .grades-section-title {
             margin: 22px 0 10px 0;
             font-size: 15px;
@@ -364,12 +367,19 @@
 
             container.innerHTML = sortedArticles.map((art, index) => {
                 const contentText = escapeHtml(art.contenu) || "Contenu vide.";
-                const isLong = (art.contenu || '').length > TRUNCATE_THRESHOLD;
-                const contentId = `content-${index}`;
 
                 // Support optionnel d'une structure "categories" : { nomCategorie: [ {grade, description, image, credit}, ... ] }
                 // Utilisée pour les fiches type "grades" avec une image par grade.
                 const gradesHtml = art.categories ? renderGradeCategories(art.categories) : '';
+                const hasGrades = gradesHtml.length > 0;
+
+                // On replie par défaut si le texte est long OU s'il y a des grades à masquer
+                const isLong = (art.contenu || '').length > TRUNCATE_THRESHOLD || hasGrades;
+
+                const contentId = `content-${index}`;
+                const gradesId = `grades-${index}`;
+                const topBtnId = `btn-top-${index}`;
+                const bottomBtnId = `btn-bottom-${index}`;
 
                 return `
                 <article class="article-card">
@@ -379,9 +389,10 @@
                         ${art.date ? `• Le ${formatDate(art.date)}` : ''}
                         <span class="category-tag">${escapeHtml(art.categorie === 'Racine' ? 'Général' : art.categorie)}</span>
                     </div>
+                    ${isLong ? `<button class="toggle-btn" id="${topBtnId}" onclick="toggleContent('${index}')">Voir plus</button>` : ''}
                     <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
-                    ${isLong ? `<button class="toggle-btn" onclick="toggleContent('${contentId}', this)">Voir plus</button>` : ''}
-                    ${gradesHtml}
+                    ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
+                    ${isLong ? `<button class="toggle-btn" id="${bottomBtnId}" style="display:none" onclick="toggleContent('${index}')">Voir moins</button>` : ''}
                 </article>
             `;
             }).join('');
@@ -414,12 +425,20 @@
             }).join('');
         }
 
-        // Déplie / replie le contenu complet d'un article, sans recharger la page
-        function toggleContent(contentId, buttonEl) {
-            const el = document.getElementById(contentId);
-            if (!el) return;
-            const isNowCollapsed = el.classList.toggle('is-collapsed');
-            buttonEl.textContent = isNowCollapsed ? 'Voir plus' : 'Voir moins';
+        // Déplie / replie le contenu (texte + grades) d'un article, sans recharger la page.
+        // Le bouton "Voir plus" (en haut, sous les métadonnées) et le bouton "Voir moins"
+        // (en bas, après les grades) partagent le même état.
+        function toggleContent(index) {
+            const contentEl = document.getElementById(`content-${index}`);
+            const gradesEl = document.getElementById(`grades-${index}`);
+            const topBtn = document.getElementById(`btn-top-${index}`);
+            const bottomBtn = document.getElementById(`btn-bottom-${index}`);
+            if (!contentEl) return;
+
+            const isNowCollapsed = contentEl.classList.toggle('is-collapsed');
+            if (gradesEl) gradesEl.classList.toggle('is-hidden', isNowCollapsed);
+            if (topBtn) topBtn.style.display = isNowCollapsed ? '' : 'none';
+            if (bottomBtn) bottomBtn.style.display = isNowCollapsed ? 'none' : '';
         }
 
         // Filtrer les données en fonction du choix du menu déroulant
