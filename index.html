@@ -69,7 +69,7 @@
             transform: translateY(-2px);
         }
         .article-card h2 { margin-top: 0; color: var(--primary); font-size: 20px; }
-        .meta { font-size: 0.85em; color: #666; margin-bottom: 15px; }
+        .meta { font-size: 0.85em; color: #666; margin-bottom: 10px; }
         .category-tag {
             display: inline-block;
             background: #d9f2ff;
@@ -390,23 +390,20 @@
                 const categoryClass = art.categorie === 'SANS CATEGORIE' ? 'badge-sans-categorie' : 'category-tag';
                 
                 return `
-                <article class="article-card">
-                    <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
-                    <div class="meta">
-                        ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
-                        ${art.date ? `• Le ${formatDate(art.date)}` : ''}
-                        <span class="${categoryClass}">${escapeHtml(art.categorie)}</span>
-                    </div>
-                    
-                    ${art.image ? `<img src="${escapeHtml(art.image)}" alt="${escapeHtml(art.titre)}" style="float: right; width: 300px; max-height: 200px; object-fit: contain; margin: -10px 0 15px 15px; border-radius: 8px;">` : ''}
-                    
-                    <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
-                    
-                    ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
-                    ${isLong ? `<button class="toggle-btn" id="${topBtnId}" onclick="toggleContent('${index}')">Voir plus</button>` : ''}
-                    ${isLong ? `<button class="toggle-btn" id="${bottomBtnId}" style="display:none" onclick="toggleContent('${index}')">Voir moins</button>` : ''}
-                </article>
-            `;
+                    <article class="article-card">
+                        ${art.image ? `<img src="${escapeHtml(art.image)}" alt="${escapeHtml(art.titre)}" style="float: right; width: 300px; max-height: 200px; object-fit: contain; margin: -10px 0 15px 15px; border-radius: 8px;">` : ''}
+                        <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
+                        <div class="meta">
+                            ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
+                            ${art.date ? `• Le ${formatDate(art.date)}` : ''}
+                            <span class="${categoryClass}">${escapeHtml(art.categorie)}</span>
+                        </div>
+                        <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
+                        ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
+                        ${isLong ? `<button class="toggle-btn" id="${topBtnId}" onclick="toggleContent('${index}')">Voir plus</button>` : ''}
+                        ${isLong ? `<button class="toggle-btn" id="${bottomBtnId}" style="display:none" onclick="toggleContent('${index}')">Voir moins</button>` : ''}
+                    </article>
+                    `;
             }).join('');
         }
 
