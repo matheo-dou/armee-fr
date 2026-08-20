@@ -391,7 +391,19 @@
                 
                 return `
                     <article class="article-card">
-                        ${art.image ? `<img src="${escapeHtml(art.image)}" alt="${escapeHtml(art.titre)}" style="float: right; width: 300px; max-height: 200px; object-fit: contain; margin: 0px 0 15px 15px; border-radius: 8px;">` : ''}
+                        ${art.image ?
+                          `<div style="float: right; width: 300px; margin: 0 0 15px 15px;">
+                            <img src="${escapeHtml(art.image)}"
+                                 alt="${escapeHtml(art.titre)}"
+                                 style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px;">
+                            <div style="text-align: right; font-size: 0.75em; margin-top: 5px;">
+                              Source : <a href="${escapeHtml(art.source || art.image)}"
+                                          target="_blank"
+                                          style="color: var(--accent); text-decoration: none;">
+                                ${new URL(art.source || art.image).hostname.replace('www.', '')}
+                              </a>
+                            </div>
+                          </div>` : ''}
                         <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
                         <div class="meta">
                             ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
@@ -423,9 +435,11 @@
                 ${g.image ? `<img src="${escapeHtml(g.image)}" alt="${escapeHtml(g.grade)}" loading="lazy" onerror="this.style.display='none'">` : ''}
                 <h3>${escapeHtml(g.grade) || 'Grade'}</h3>
                 <p>${escapeHtml(g.description) || ''}</p>
-                ${g.image ? `
-                  <div style="text-align: right; font-size: 0.75em; margin-top: 5px; color: #666;">
-                    Source : <a href="${escapeHtml(g.image)}" target="_blank" style="color: var(--accent); text-decoration: none;">
+                ${g.image ?
+                  `<div style="text-align: center; font-size: 0.75em; margin-top: 5px;">
+                    Source : <a href="${escapeHtml(g.image)}"
+                                target="_blank"
+                                style="color: var(--accent); text-decoration: none;">
                       ${new URL(g.image).hostname.replace('www.', '')}
                     </a>
                   </div>` : ''}
