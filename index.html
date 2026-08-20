@@ -165,7 +165,7 @@
             font-size: 0.75em;
             color: #999;
         }
-        .loader { text-align: center; font-size: 18px; color: #666; padding: 40px 0; }
+        .loader { text-align: center; font-size: 18px; padding: 40px 0; }
         .error-msg { color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 6px; }
     </style>
 </head>
@@ -420,7 +420,11 @@
 
                 const cardsHtml = grades.map(g => `
                     <div class="grade-card">
-                        ${g.image ? `<img src="${escapeHtml(g.image)}" alt="${escapeHtml(g.grade)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+                        ${g.image ?
+                          `<div style="text-align: center; margin-top: 5px;">
+                            <img src="${escapeHtml(g.image)}" alt="${escapeHtml(g.grade)}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 6px;">
+                            ${g.credit ? `<span style="font-size: 0.7em;">© ${escapeHtml(g.credit)}</span>` : ''}
+                          </div>` : ''}
                         <h3>${escapeHtml(g.grade) || 'Grade'}</h3>
                         <p>${escapeHtml(g.description) || ''}</p>
                         ${g.credit ? `<span class="credit">© ${escapeHtml(g.credit)}</span>` : ''}
