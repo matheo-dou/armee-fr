@@ -391,7 +391,16 @@
                 
                 return `
                     <article class="article-card">
-                        ${art.image ? `<img src="${escapeHtml(art.image)}" alt="${escapeHtml(art.titre)}" style="float: right; width: 300px; max-height: 200px; object-fit: contain; margin: -10px 0 15px 15px; border-radius: 8px;">` : ''}
+                        ${art.image ?
+                          `<img src="${escapeHtml(art.image)}"
+                                alt="${escapeHtml(art.titre)}"
+                                style="position: absolute;
+                                       right: 15px;
+                                       ${isLong ? 'top: 50%; transform: translateY(-50%);' : 'top: 0;'}
+                                       width: 300px;
+                                       max-height: 200px;
+                                       object-fit: contain;
+                                       border-radius: 8px;">` : ''}
                         <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
                         <div class="meta">
                             ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
