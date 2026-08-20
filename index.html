@@ -387,6 +387,8 @@
                 const topBtnId = `btn-top-${index}`;
                 const bottomBtnId = `btn-bottom-${index}`;
 
+                const categoryClass = art.categorie === 'SANS CATEGORIE' ? 'badge-sans-categorie' : 'category-tag';
+                
                 return `
                 <article class="article-card">
                     <h2>${escapeHtml(art.titre) || "Article sans titre"}</h2>
