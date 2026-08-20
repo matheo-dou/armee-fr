@@ -395,7 +395,7 @@
                     <div class="meta">
                         ${art.auteur ? `Par <strong>${escapeHtml(art.auteur)}</strong>` : ''}
                         ${art.date ? `• Le ${formatDate(art.date)}` : ''}
-                        <span class="category-tag">${escapeHtml(art.categorie)}</span>
+                        <span class="${categoryClass}">${escapeHtml(art.categorie)}</span>
                     </div>
                     <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
                     ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
