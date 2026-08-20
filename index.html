@@ -194,9 +194,7 @@
 
         async function init() {
             try {
-                // 1. Récupération en parallèle des deux onglets
                 const [articleRows, categoryRows] = await Promise.all([
-                    // IMPORTANT : Conservez les en-têtes exactement tels que demandés
                     fetchGvizRows(SHEET_ARTICLES, ['id', 'categorie', 'contenu']), 
                     fetchGvizRows(SHEET_CATEGORIES, ['id', 'Nom Categorie'])
                 ]);
@@ -205,23 +203,27 @@
                     throw new Error(`Aucune ligne trouvée dans l'onglet "${SHEET_ARTICLES}".`);
                 }
                 
-                // 2. Construction de la table de correspondance id de catégorie -> nom affiché
                 const categoryMap = {};
+                const validCategories = [];
+
+                // Nettoyage des espaces et vérification stricte
                 categoryRows.forEach(row => {
-                    // On vérifie que la catégorie a bien un ID ET un nom défini (pas juste un ID isolé)
                     if (row.id && row['Nom Categorie']) {
-                        categoryMap[row.id] = row['Nom Categorie'];
+                        const nomPropre = row['Nom Categorie'].trim();
+                        // Ignore la ligne si elle est vide ou ne contient que des espaces
+                        if (nomPropre !== "") { 
+                            categoryMap[row.id] = nomPropre;
+                            validCategories.push({ id: row.id, name: nomPropre });
+                        }
                     }
                 });
                 
-                // 3. Parsing du JSON de chaque article + association de sa catégorie
                 for (const row of articleRows) {
                     try {
                         const art = JSON.parse(row.contenu);
                         art.id = row.id;
-                        art.categorieId = row.categorie || '';
+                        art.categorieId = row.categorie ? row.categorie.toString().trim() : '';
                         
-                        // Nom affiché : résolu via la table de correspondance
                         art.categorie = art.categorieId && categoryMap[art.categorieId]
                             ? categoryMap[art.categorieId]
                             : 'Général';
@@ -231,30 +233,60 @@
                     }
                 }
                 
-                // 4. Construction du menu déroulant à partir de l'onglet Categories
                 const selectEl = document.getElementById('category-select');
-                categoryRows
-                    // FILTRE CRUCIAL : On ne garde que les catégories qui ont un nom !
-                    .filter(row => row.id && row['Nom Categorie']) 
-                    .sort((a, b) => a['Nom Categorie'].localeCompare(b['Nom Categorie']))
-                    .forEach(row => {
+                
+                validCategories
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .forEach(cat => {
                         const option = document.createElement('option');
-                        option.value = row.id;
-                        option.textContent = row['Nom Categorie'];
+                        option.value = cat.id;
+                        option.textContent = cat.name;
                         selectEl.appendChild(option);
                     });
 
-                // Activation de l'écouteur de changement sur le menu déroulant
-                selectEl.addEventListener('change', filterArticles);
+                // Écouteur pour la mise à jour fluide de l'URL
+                selectEl.addEventListener('change', (e) => {
+                    const selectedVal = e.target.value;
+                    const newUrl = new URL(window.location.href);
+                    
+                    if (selectedVal === 'Tout' || selectedVal === '') {
+                        newUrl.searchParams.delete('cat');
+                    } else {
+                        newUrl.searchParams.set('cat', selectedVal);
+                    }
+                    
+                    // Modifie l'URL sans recharger la page
+                    window.history.pushState({}, '', newUrl); 
+                    
+                    filterArticles(e);
+                });
 
-                // Premier affichage : option "Tout" par défaut
-                renderArticles(allArticles);
+                // Lecture de l'URL au chargement de la page
+                const urlParams = new URLSearchParams(window.location.search);
+                const catParam = urlParams.get('cat');
+                
+                if (catParam && categoryMap[catParam]) {
+                    // Si l'URL a une catégorie valide existante
+                    selectEl.value = catParam;
+                } else {
+                    // Si la catégorie n'existe pas ou qu'il n'y a pas de paramètre
+                    selectEl.value = 'Tout';
+                    
+                    // Nettoie l'URL pour la remettre à zéro si le paramètre était invalide
+                    if (catParam) {
+                        const newUrl = new URL(window.location.href);
+                        newUrl.searchParams.delete('cat');
+                        window.history.replaceState({}, '', newUrl);
+                    }
+                }
+
+                // Lancement de l'affichage initial en fonction de la sélection
+                filterArticles({ target: selectEl });
 
             } catch (error) {
                 document.getElementById('articles-container').innerHTML = `
                     <div class="error-msg">
-                        <strong>Erreur d'initialisation :</strong> ${escapeHtml(error.message)}<br><br>
-                        <em>Aide : Assurez-vous d'avoir rempli SHEET_ID correctement, que les onglets "${SHEET_ARTICLES}" et "${SHEET_CATEGORIES}" existent, et que le Sheet est partagé publiquement en lecture.</em>
+                        <strong>Erreur d'initialisation :</strong> ${escapeHtml(error.message)}
                     </div>`;
             }
         }
