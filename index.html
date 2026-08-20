@@ -398,7 +398,8 @@
                         <span class="${categoryClass}">${escapeHtml(art.categorie)}</span>
                     </div>
                     
-                    ${art.image ? `<img src="${escapeHtml(art.image)}" alt="${escapeHtml(art.titre)}" style="width: 100%; max-height: 300px; object-fit: contain; margin-bottom: 15px; border-radius: 6px;">` : ''}
+                    ${art.image ? `<img src="${escapeHtml(art.image)}" alt="${escapeHtml(art.titre)}" style="float: right; width: 300px; max-height: 200px; object-fit: contain; margin: -10px 0 15px 15px; border-radius: 8px;">` : ''}
+                    
                     <div class="content${isLong ? ' is-collapsed' : ''}" id="${contentId}">${contentText}</div>
                     
                     ${hasGrades ? `<div class="grades-wrapper${isLong ? ' is-hidden' : ''}" id="${gradesId}">${gradesHtml}</div>` : ''}
