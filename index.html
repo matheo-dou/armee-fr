@@ -155,6 +155,11 @@
             font-size: 0.75em;
             color: #999;
         }
+        .badge-sans-categorie {
+            color: #ff4d4d; /* Rouge vif */
+            font-weight: bold;
+        }
+        
         .loader { text-align: center; font-size: 18px; color: #666; padding: 40px 0; }
         .error-msg { color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 6px; }
     </style>
@@ -223,9 +228,11 @@
                         art.id = row.id;
                         art.categorieId = row.categorie ? row.categorie.toString().trim() : '';
                         
+                        // Si l'ID existe et qu'il est dans la table, on met le nom, sinon "Sans Catégorie"
                         art.categorie = art.categorieId && categoryMap[art.categorieId]
                             ? categoryMap[art.categorieId]
-                            : 'Général';
+                            : 'SANS CATEGORIE';
+                            
                         allArticles.push(art);
                     } catch (e) {
                         console.error(`JSON invalide pour la ligne id="${row.id}" :`, e);
